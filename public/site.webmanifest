@@ -1,0 +1,17 @@
+{
+  "name": "TekBrandify® — Creative & Technical Brand Engineering",
+  "short_name": "TekBrandify®",
+  "description": "TekBrandify® is an award-winning creative and technical brand engineering studio in Lagos, Nigeria led by Michael Okpala, specializing in Brand Identity, Web Development, UI/UX Design, Brand Strategy, and AI Automation.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070707",
+  "theme_color": "#F16B0D",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
