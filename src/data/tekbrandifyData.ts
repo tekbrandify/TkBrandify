@@ -22,7 +22,7 @@ export const SHOWCASE_PROJECTS: CaseStudyProject[] = [
     imgSrc: '/media/portfolio-img-1.006uvpvyjl7kz.webp',
     client: 'Aurelia Botanicals Luxury Skincare',
     year: '2026',
-    sprintDuration: '72h Rapid Sprint',
+    sprintDuration: '48h Rapid Sprint',
     roasMetric: '4.8x Blended ROAS',
     retentionImpact: '+64% Repeat Purchase Velocity',
     challenge:
@@ -44,7 +44,7 @@ export const SHOWCASE_PROJECTS: CaseStudyProject[] = [
     imgSrc: '/media/portfolio-img-2.2ys49j7gkfz7j.webp',
     client: 'Nexus Autonomous Systems Inc.',
     year: '2026',
-    sprintDuration: '72h Rapid Sprint',
+    sprintDuration: '48h Rapid Sprint',
     roasMetric: '4.4x Blended ROAS',
     retentionImpact: '98% Enterprise Retention',
     challenge:
@@ -66,7 +66,7 @@ export const SHOWCASE_PROJECTS: CaseStudyProject[] = [
     imgSrc: '/media/portfolio-img-3.04bada5ydkt1h.webp',
     client: 'Kora Pan-African Treasury Network',
     year: '2026',
-    sprintDuration: '72h Rapid Sprint',
+    sprintDuration: '48h Rapid Sprint',
     roasMetric: '4.6x Blended ROAS',
     retentionImpact: '$1.8B+ Annualized Volume',
     challenge:
@@ -88,7 +88,7 @@ export const SHOWCASE_PROJECTS: CaseStudyProject[] = [
     imgSrc: '/media/portfolio-img-4.0wnkqlz-f5rcj.webp',
     client: 'Veloce Electric Performance',
     year: '2026',
-    sprintDuration: '72h Rapid Sprint',
+    sprintDuration: '48h Rapid Sprint',
     roasMetric: '4.2x Blended ROAS',
     retentionImpact: '14,200+ Pre-Order Reservations',
     challenge:
@@ -161,9 +161,9 @@ export const SERVICE_PILLARS = [
 export const WHY_WORK_CARDS = [
   {
     iconName: 'rocket' as const,
-    title: '72h Rapid Sprint Delivery',
+    title: '48h Rapid Sprint Delivery',
     description:
-      'Ship flagship brand systems and high-converting custom web platforms into production in as little as 72 hours—engineered in Lagos for global velocity.',
+      'Ship flagship brand systems and high-converting custom web platforms into production in as little as 48 hours—engineered in Lagos for global velocity.',
   },
   {
     iconName: 'sparkles' as const,
@@ -182,7 +182,7 @@ export const WHY_WORK_CARDS = [
 export const AWARDS_LIST = [
   {
     title: 'Site of the Day — Aurelia Botanicals',
-    meta: '2026 - AWWWARDS • 72H RAPID SPRINT',
+    meta: '2026 - AWWWARDS • 48H RAPID SPRINT',
     imgSrc: '/media/portfolio-img-1.006uvpvyjl7kz.webp',
   },
   {
@@ -205,7 +205,7 @@ export const AWARDS_LIST = [
 export const TESTIMONIALS_LIST = [
   {
     quote:
-      "Partnering with Michael Okpala and TekBrandify® completely transformed Aurelia Botanicals' global launch. Within weeks of our 72h rapid sprint, conversions surged and we achieved a 4.8x blended ROAS. They don't just build websites—they engineer category authority.",
+      "Partnering with Michael Okpala and TekBrandify® completely transformed Aurelia Botanicals' global launch. Within weeks of our 48h rapid sprint, conversions surged and we achieved a 4.8x blended ROAS. They don't just build websites—they engineer category authority.",
     name: 'Amara Nwosu',
     role: 'CMO, Aurelia Botanicals',
     image: '/media/testimonial-1.1n9zd7_gpp9li.webp',
@@ -247,9 +247,9 @@ export const FAQ_LIST = [
       'TekBrandify® is a premier creative and technical brand engineering studio headquartered in Lagos, Nigeria, founded and led by Michael Okpala (Founder & Creative/Technical Director). With 85+ shipped products and a 98% client retention rate, we partner with ambitious founders and global enterprises across Brand Identity, Web Development, UI/UX Design, Brand Strategy & Marketing, and AI Integration & Automation.',
   },
   {
-    question: 'How does your signature 72h Rapid Sprint delivery work?',
+    question: 'How does your signature 48h Rapid Sprint delivery work?',
     answer:
-      'Our 72h Rapid Sprint compresses weeks of agency overhead into a hyper-focused 3-day execution window for high-impact brand launches, landing flagships, and interactive prototypes. For comprehensive multi-page ecosystems, custom headless builds, and full AI automation pipelines, engagements typically span 2 to 4 weeks with daily milestone deployments.',
+      'Our 48h Rapid Sprint compresses weeks of agency overhead into a hyper-focused 48-hour execution window for high-impact brand launches, landing flagships, and interactive prototypes. For comprehensive multi-page ecosystems, custom headless builds, and full AI automation pipelines, engagements typically span 2 to 4 weeks with daily milestone deployments.',
   },
   {
     question: 'How do you achieve a 4.4x Blended ROAS across client engagements?',

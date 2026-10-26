@@ -6,6 +6,7 @@ import {
   buildWhatsAppUrl,
   validateInquiryPayload,
   generateInquiryRef,
+  buildResendInquiryEmailPayload,
 } from './copySplitter';
 
 test('tokenizeCopyText preserves <br> tags and splits words and spaces accurately', () => {
@@ -41,13 +42,13 @@ test('buildWhatsAppUrl encodes selected service pills and inquiry details for +2
     name: 'Adaobi Okafor',
     email: 'adaobi@kora.africa',
     services: ['Brand Identity', 'Web Development'],
-    message: 'Need a 72h rapid sprint launch.',
+    message: 'Need a 48h rapid sprint launch.',
   });
   assert.ok(url.startsWith('https://wa.me/2348067820332?text='));
   const decoded = decodeURIComponent(url.replace('https://wa.me/2348067820332?text=', ''));
   assert.ok(decoded.includes('Adaobi Okafor'));
   assert.ok(decoded.includes('Brand Identity, Web Development'));
-  assert.ok(decoded.includes('Need a 72h rapid sprint launch.'));
+  assert.ok(decoded.includes('Need a 48h rapid sprint launch.'));
 });
 
 test('validateInquiryPayload rejects missing fields or invalid email and accepts valid brief', () => {
@@ -61,14 +62,41 @@ test('validateInquiryPayload rejects missing fields or invalid email and accepts
       name: 'Tunde Bakare',
       email: 'tunde@veloce.africa',
       services: ['Web Development'],
-      message: '72h WebGL launch needed',
+      message: '48h WebGL launch needed',
     }).valid,
     true
   );
 });
 
-test('generateInquiryRef returns a formatted TEK-72H sprint code', () => {
+test('generateInquiryRef returns a formatted TEK-48H sprint code', () => {
   const ref = generateInquiryRef(1760961600000);
-  assert.match(ref, /^TEK-72H-[A-Z0-9]{4,}$/);
+  assert.match(ref, /^TEK-48H-[A-Z0-9]{4,}$/);
 });
+
+test('buildResendInquiryEmailPayload formats 48h Rapid Sprint inquiry email and escapes HTML', () => {
+  const payload = buildResendInquiryEmailPayload(
+    {
+      referenceId: 'TEK-48H-ABCD',
+      name: 'Chidi <Founder>',
+      email: 'chidi@nexus.ai',
+      phone: '+2348067820332',
+      services: ['Brand Identity', 'AI Integration & Automation'],
+      message: 'Need a 48h Rapid Sprint before Monday.',
+      createdAt: '2026-10-26T14:00:00.000Z',
+    },
+    {
+      fromEmail: 'TekBrandify® <michael@tekbrandify.com>',
+      toEmail: 'michaeloflagos@gmail.com',
+    }
+  );
+
+  assert.equal(payload.from, 'TekBrandify® <michael@tekbrandify.com>');
+  assert.deepEqual(payload.to, ['michaeloflagos@gmail.com']);
+  assert.equal(payload.replyTo, 'chidi@nexus.ai');
+  assert.equal(payload.subject, '[TEK-48H-ABCD] New 48h Rapid Sprint Brief — Chidi <Founder>');
+  assert.ok(payload.html.includes('Chidi &lt;Founder&gt;'));
+  assert.ok(payload.html.includes('48h Rapid Sprint Brief'));
+  assert.ok(payload.text.includes('Need a 48h Rapid Sprint before Monday.'));
+});
+
 

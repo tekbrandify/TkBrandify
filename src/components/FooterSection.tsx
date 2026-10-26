@@ -177,7 +177,7 @@ export default function FooterSection() {
 
             <div className="flex flex-col gap-[2vw] items-end max-[1025px]:items-center max-[1025px]:text-center max-md:gap-[6vw]">
               <p className="text-[3.4vw] text-end w-[80%] leading-[1.15] max-[1025px]:text-[5vw] max-[1025px]:w-full max-[1025px]:text-center max-md:text-[7.5vw]">
-                Ready to Engineer Your Brand in 72 Hours?
+                Ready to Engineer Your Brand in 48 Hours?
               </p>
               <AnimatedButton
                 btnText="Get in Touch"
@@ -319,7 +319,7 @@ export default function FooterSection() {
                     </a>
                   </div>
                   <p className="text-xs text-white/60 tabular-nums">
-                    72h Rapid Sprint • 85+ Shipped • 4.4x Blended ROAS • 98% Retention
+                    48h Rapid Sprint • 85+ Shipped • 4.4x Blended ROAS • 98% Retention
                   </p>
                 </div>
               </form>

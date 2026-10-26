@@ -240,7 +240,7 @@ export default function HeroSection() {
           <div className="w-[14%] flex flex-col justify-between text-end text-[1.25vw] leading-[1.15] py-[2vw] max-[1025px]:w-[48%] max-[1025px]:text-[3.5vw] max-[1025px]:text-start max-[1025px]:flex-col-reverse max-md:w-full max-md:text-[4.5vw] max-md:gap-[7vw] max-[1025px]:gap-20 max-md:py-0">
             <CopyWrapper splitBy="lines" start={startSubhead} animateOnScroll={false}>
               <p className="text-white">
-                72h Rapid Sprint
+                48h Rapid Sprint
                 <br />
                 85+ Shipped • 4.4x ROAS
               </p>

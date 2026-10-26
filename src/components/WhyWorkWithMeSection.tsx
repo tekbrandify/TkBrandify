@@ -66,7 +66,7 @@ export default function WhyWorkWithMeSection() {
         </CopyWrapper>
         <CopyWrapper splitBy="lines">
           <p className="text-[1.25vw] text-white mt-[1.5vw] max-[1025px]:text-[2.5vw] max-md:text-[4.5vw] max-md:mt-[2vw]">
-            72h Rapid Sprint • 85+ Shipped • 4.4x Blended ROAS • 98% Retention
+            48h Rapid Sprint • 85+ Shipped • 4.4x Blended ROAS • 98% Retention
           </p>
         </CopyWrapper>
       </div>

@@ -198,7 +198,7 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
                   Start a Sprint
                 </h2>
                 <p className="mt-[1vw] text-[1.1vw] text-white/80 max-[1025px]:text-[2.4vw] max-md:text-[4vw]">
-                  Partner with Michael Okpala &amp; TekBrandify® in Lagos, Nigeria. Launch in 72h with 4.4x blended ROAS architecture.
+                  Partner with Michael Okpala &amp; TekBrandify® in Lagos, Nigeria. Launch in 48h with 4.4x blended ROAS architecture.
                 </p>
                 <div className="mt-[2vw] space-y-2 text-[1vw] text-white/70 max-[1025px]:text-[2.2vw] max-md:text-[3.6vw]">
                   <p>Direct Line: +234 806 782 0332</p>
@@ -431,7 +431,7 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
                     }}
                     className="px-6 py-3 rounded-full bg-linear-to-r from-[#F16B0D] to-[#E61416] text-white text-sm font-medium cursor-pointer"
                   >
-                    Book Similar 72h Sprint
+                    Book Similar 48h Sprint
                   </button>
                   <a
                     href={`https://wa.me/2348067820332?text=${encodeURIComponent(
