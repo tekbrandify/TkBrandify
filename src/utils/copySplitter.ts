@@ -38,21 +38,70 @@ export function tokenizeCopyText(input: string): SplitToken[] {
 }
 
 /**
- * Formats a Date object into Lagos, Nigeria (WAT / Africa/Lagos) live clock string.
+ * Deterministic UTC+1 (Africa/Lagos, WAT — no DST year-round) components helper.
+ * Ensures exact Lagos World Clock time (6°27'N / 3°21'E, UTC+1) across all environments.
+ */
+export function getLagosTimeParts(date: Date = new Date()): {
+  year: number;
+  month: string;
+  day: string;
+  weekday: string;
+  hours24: string;
+  hours12: string;
+  minutes: string;
+  seconds: string;
+  ampm: 'AM' | 'PM';
+} {
+  // Lagos, Nigeria is permanently WAT (UTC+1, +3600000ms) with no Daylight Saving Time.
+  const watMs = date.getTime() + 3600 * 1000;
+  const watDate = new Date(watMs);
+
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const year = watDate.getUTCFullYear();
+  const month = months[watDate.getUTCMonth()] || 'Jan';
+  const day = String(watDate.getUTCDate()).padStart(2, '0');
+  const weekday = weekdays[watDate.getUTCDay()] || 'Mon';
+
+  const h24 = watDate.getUTCHours();
+  const m = watDate.getUTCMinutes();
+  const s = watDate.getUTCSeconds();
+
+  const ampm: 'AM' | 'PM' = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+
+  return {
+    year,
+    month,
+    day,
+    weekday,
+    hours24: String(h24).padStart(2, '0'),
+    hours12: String(h12).padStart(2, '0'),
+    minutes: String(m).padStart(2, '0'),
+    seconds: String(s).padStart(2, '0'),
+    ampm,
+  };
+}
+
+/**
+ * Formats a Date object into Lagos, Nigeria (WAT / Africa/Lagos, 6°27'N / 3°21'E, UTC+1) live World Clock string.
  */
 export function formatLagosTime(date: Date = new Date()): string {
   try {
-    const formatter = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Africa/Lagos',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
-    return `Lagos, NG — ${formatter.format(date)} WAT`;
+    const p = getLagosTimeParts(date);
+    return `Lagos, NG (6°27'N, 3°21'E) — ${p.hours12}:${p.minutes}:${p.seconds} ${p.ampm} (${p.hours24}:${p.minutes}:${p.seconds} WAT • UTC+1)`;
   } catch {
-    return 'Lagos, NG — WAT';
+    return 'Lagos, NG — WAT (UTC+1)';
   }
+}
+
+/**
+ * Formats a full date + time stamp for Lagos, Nigeria (WAT / UTC+1) used in email receipts and logs.
+ */
+export function formatLagosDateTime(date: Date = new Date()): string {
+  const p = getLagosTimeParts(date);
+  return `${p.weekday}, ${p.day} ${p.month} ${p.year} • ${p.hours12}:${p.minutes}:${p.seconds} ${p.ampm} WAT (${p.hours24}:${p.minutes} UTC+1 • Lagos, Nigeria +234)`;
 }
 
 /**
@@ -132,7 +181,7 @@ export function generateInquiryRef(timestampMs: number = Date.now()): string {
 export interface ResendEmailPayload {
   from: string;
   to: string[];
-  replyTo: string;
+  replyTo?: string;
   subject: string;
   text: string;
   html: string;
@@ -148,7 +197,29 @@ function escapeHtml(raw: string): string {
 }
 
 /**
- * Pure builder for Resend transactional email payload when a new 48h Rapid Sprint brief arrives.
+ * Sanitizes the From header so non-ASCII symbols like ® don't trigger spam filters.
+ */
+export function sanitizeFromHeader(rawFrom?: string): string {
+  const trimmed = rawFrom?.trim();
+  if (!trimmed) {
+    return 'TekBrandify Studio <support@tekbrandify.com.ng>';
+  }
+  return trimmed.replace(/®/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Encodes inquiry fields as application/x-www-form-urlencoded for native Netlify Forms (`data-netlify="true"`).
+ */
+export function encodeNetlifyFormPayload(fields: Record<string, string>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(fields)) {
+    params.append(key, value);
+  }
+  return params.toString();
+}
+
+/**
+ * Pure builder for transactional email payload when a new 48h Rapid Sprint brief arrives.
  */
 export function buildResendInquiryEmailPayload(
   inquiry: {
@@ -159,25 +230,42 @@ export function buildResendInquiryEmailPayload(
     services: string[];
     message: string;
     createdAt: string;
+    lagosTimestamp?: string;
   },
   options?: {
     fromEmail?: string;
-    toEmail?: string;
+    toEmail?: string | string[];
+    includeReplyTo?: boolean;
   }
 ): ResendEmailPayload {
-  const from =
-    options?.fromEmail?.trim() || 'TekBrandify® <onboarding@resend.dev>';
-  const to = [options?.toEmail?.trim() || 'michael@tekbrandify.com'];
+  const from = sanitizeFromHeader(options?.fromEmail);
+  const rawTo = options?.toEmail;
+  const toList = Array.isArray(rawTo)
+    ? rawTo.map((e) => e.trim()).filter(Boolean)
+    : rawTo?.trim()
+      ? rawTo
+          .split(',')
+          .map((e) => e.trim())
+          .filter(Boolean)
+      : ['support@tekbrandify.com.ng'];
+
   const servicesLabel =
     inquiry.services && inquiry.services.length > 0
       ? inquiry.services.join(', ')
       : 'Custom 48h Sprint';
-  const subject = `[${inquiry.referenceId}] New 48h Rapid Sprint Brief — ${inquiry.name}`;
+  const subject = `[${inquiry.referenceId}] New 48h Rapid Sprint Brief - ${inquiry.name}`;
+
+  const parsedDate = inquiry.createdAt ? new Date(inquiry.createdAt) : new Date();
+  const formattedLagosTime =
+    inquiry.lagosTimestamp ||
+    (Number.isNaN(parsedDate.getTime())
+      ? inquiry.createdAt
+      : formatLagosDateTime(parsedDate));
 
   const text = [
-    `TekBrandify® — New 48h Rapid Sprint Inquiry`,
+    `TekBrandify Studio — New 48h Rapid Sprint Inquiry`,
     `Reference ID: ${inquiry.referenceId}`,
-    `Submitted At: ${inquiry.createdAt}`,
+    `Lagos Time (WAT / UTC+1): ${formattedLagosTime}`,
     ``,
     `Client Name: ${inquiry.name}`,
     `Client Email: ${inquiry.email}`,
@@ -186,6 +274,8 @@ export function buildResendInquiryEmailPayload(
     ``,
     `Project Brief:`,
     inquiry.message,
+    ``,
+    `Direct Reply: mailto:${inquiry.email}`,
   ].join('\n');
 
   const safeName = escapeHtml(inquiry.name);
@@ -194,49 +284,60 @@ export function buildResendInquiryEmailPayload(
   const safeServices = escapeHtml(servicesLabel);
   const safeMessage = escapeHtml(inquiry.message).replace(/\n/g, '<br/>');
   const safeRef = escapeHtml(inquiry.referenceId);
+  const safeTime = escapeHtml(formattedLagosTime);
 
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #070707; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 640px; margin: 0 auto; border: 1px solid rgba(255,255,255,0.15);">
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 16px; margin-bottom: 24px;">
-        <h1 style="margin: 0; font-size: 20px; font-weight: 600; color: #ffffff;">TekBrandify® — 48h Rapid Sprint Brief</h1>
-        <span style="background: rgba(241,107,13,0.18); color: #F16B0D; border: 1px solid rgba(241,107,13,0.4); padding: 4px 10px; border-radius: 999px; font-size: 12px; font-family: monospace;">${safeRef}</span>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f7f8; color: #111111; padding: 28px; border-radius: 12px; max-width: 640px; margin: 0 auto; border: 1px solid #e5e7eb;">
+      <div style="background-color: #0d0d0d; color: #ffffff; padding: 20px 24px; border-radius: 10px; margin-bottom: 20px;">
+        <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #F16B0D; margin-bottom: 6px;">TekBrandify Studio • Lagos, Nigeria (+234)</div>
+        <h1 style="margin: 0; font-size: 20px; font-weight: 600; color: #ffffff;">New 48h Rapid Sprint Brief (${safeRef})</h1>
+        <div style="margin-top: 6px; font-size: 12px; color: #a1a1aa;">${safeTime}</div>
       </div>
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; background: #ffffff; border-radius: 10px; padding: 16px; border: 1px solid #e5e7eb;">
         <tr>
-          <td style="padding: 8px 0; color: rgba(255,255,255,0.6); width: 140px;">Client Name</td>
-          <td style="padding: 8px 0; color: #ffffff; font-weight: 500;">${safeName}</td>
+          <td style="padding: 10px 14px; color: #52525b; width: 150px; border-bottom: 1px solid #f4f4f5;">Client Name</td>
+          <td style="padding: 10px 14px; color: #111111; font-weight: 600; border-bottom: 1px solid #f4f4f5;">${safeName}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: rgba(255,255,255,0.6);">Email Address</td>
-          <td style="padding: 8px 0;"><a href="mailto:${safeEmail}" style="color: #F16B0D; text-decoration: none;">${safeEmail}</a></td>
+          <td style="padding: 10px 14px; color: #52525b; border-bottom: 1px solid #f4f4f5;">Client Email</td>
+          <td style="padding: 10px 14px; border-bottom: 1px solid #f4f4f5;"><a href="mailto:${safeEmail}" style="color: #F16B0D; font-weight: 600; text-decoration: none;">${safeEmail}</a></td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: rgba(255,255,255,0.6);">Phone / WhatsApp</td>
-          <td style="padding: 8px 0; color: #ffffff;">${safePhone}</td>
+          <td style="padding: 10px 14px; color: #52525b; border-bottom: 1px solid #f4f4f5;">Phone / WhatsApp</td>
+          <td style="padding: 10px 14px; color: #111111; border-bottom: 1px solid #f4f4f5;">${safePhone}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: rgba(255,255,255,0.6);">Service Pillars</td>
-          <td style="padding: 8px 0; color: #F16B0D; font-weight: 500;">${safeServices}</td>
+          <td style="padding: 10px 14px; color: #52525b;">Service Pillars</td>
+          <td style="padding: 10px 14px; color: #F16B0D; font-weight: 600;">${safeServices}</td>
         </tr>
       </table>
-      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin-bottom: 8px;">Project Brief &amp; Timeline</div>
-        <div style="font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.9);">${safeMessage}</div>
+      <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #71717a; margin-bottom: 8px;">Project Brief &amp; 48h Sprint Scope</div>
+        <div style="font-size: 14px; line-height: 1.6; color: #18181b;">${safeMessage}</div>
       </div>
-      <div style="font-size: 12px; color: rgba(255,255,255,0.45); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
-        Dispatched via TekBrandify® Studio Engine • Lagos, Nigeria (WAT) • 48h Rapid Sprint Architecture
+      <div style="margin-bottom: 20px;">
+        <a href="mailto:${safeEmail}?subject=Re:%20TekBrandify%2048h%20Rapid%20Sprint%20Brief%20(${safeRef})" style="display: inline-block; background-color: #F16B0D; color: #ffffff; font-weight: 600; font-size: 13px; padding: 10px 18px; border-radius: 999px; text-decoration: none;">Reply Directly to ${safeName} (${safeEmail})</a>
+      </div>
+      <div style="font-size: 12px; color: #71717a; border-top: 1px solid #e5e7eb; padding-top: 12px;">
+        Dispatched via TekBrandify Studio Engine • Lagos, Nigeria (6°27'N, 3°21'E • WAT UTC+1 • NGN • +234)
       </div>
     </div>
   `.trim();
 
-  return {
+  const payload: ResendEmailPayload = {
     from,
-    to,
-    replyTo: inquiry.email,
+    to: toList,
     subject,
     text,
     html,
   };
+
+  if (options?.includeReplyTo !== false) {
+    payload.replyTo = inquiry.email;
+  }
+
+  return payload;
 }
+
 
 

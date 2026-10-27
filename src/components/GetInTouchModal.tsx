@@ -2,6 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { CaseStudyProject, SERVICE_PILLARS } from '../data/tekbrandifyData';
 import {
   buildWhatsAppUrl,
+  encodeNetlifyFormPayload,
+  formatLagosDateTime,
   generateInquiryRef,
   validateInquiryPayload,
 } from '../utils/copySplitter';
@@ -42,6 +44,14 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [referenceId, setReferenceId] = useState('');
+  const [lagosTimestamp, setLagosTimestamp] = useState('');
+  const [deliveryStatus, setDeliveryStatus] = useState<{
+    sent: boolean;
+    emailId?: string;
+    deliveredTo?: string[];
+    note?: string;
+    error?: string;
+  } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   const openModal = useCallback((defaultService?: string) => {
@@ -51,6 +61,7 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
       );
     }
     setSubmitted(false);
+    setDeliveryStatus(null);
     setErrorMsg('');
     setIsOpen(true);
   }, []);
@@ -113,7 +124,30 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
     setErrorMsg('');
     setSubmitting(true);
     let refCode = generateInquiryRef();
+    let serverLagosTime = formatLagosDateTime(new Date());
+    let emailInfo: typeof deliveryStatus = null;
 
+    // 1. Submit to native Netlify Forms (`data-netlify="true"`) so Netlify captures & notifies support@tekbrandify.com.ng with zero API keys
+    try {
+      await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: encodeNetlifyFormPayload({
+          'form-name': 'tekbrandify-sprint-inquiry',
+          referenceId: refCode,
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          services: selectedServices.join(', ') || 'Custom 48h Sprint',
+          message: message.trim(),
+          lagosTimestamp: serverLagosTime,
+        }),
+      });
+    } catch {
+      // Non-blocking when not running behind Netlify CDN
+    }
+
+    // 2. Submit to Studio API / Mailbux SMTP handler
     try {
       const response = await fetch('/api/inquiries', {
         method: 'POST',
@@ -130,6 +164,12 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
         const data = await response.json();
         if (data?.inquiry?.referenceId) {
           refCode = data.inquiry.referenceId;
+        }
+        if (data?.inquiry?.lagosTimestamp) {
+          serverLagosTime = data.inquiry.lagosTimestamp;
+        }
+        if (data?.emailDelivery) {
+          emailInfo = data.emailDelivery;
         }
       }
     } catch {
@@ -153,6 +193,8 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
     }
 
     setReferenceId(refCode);
+    setLagosTimestamp(serverLagosTime);
+    setDeliveryStatus(emailInfo);
     setSubmitting(false);
     setSubmitted(true);
   };
@@ -200,9 +242,19 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
                 <p className="mt-[1vw] text-[1.1vw] text-white/80 max-[1025px]:text-[2.4vw] max-md:text-[4vw]">
                   Partner with Michael Okpala &amp; TekBrandify® in Lagos, Nigeria. Launch in 48h with 4.4x blended ROAS architecture.
                 </p>
-                <div className="mt-[2vw] space-y-2 text-[1vw] text-white/70 max-[1025px]:text-[2.2vw] max-md:text-[3.6vw]">
+                <div className="mt-[2vw] space-y-1.5 text-[0.95vw] text-white/70 max-[1025px]:text-[2.1vw] max-md:text-[3.5vw]">
                   <p>Direct Line: +234 806 782 0332</p>
-                  <p>Studio: Victoria Island, Lagos — WAT (UTC+1)</p>
+                  <p>
+                    Email:{' '}
+                    <a
+                      href="mailto:support@tekbrandify.com.ng"
+                      className="text-white hover:text-[#F16B0D] underline transition-colors"
+                    >
+                      support@tekbrandify.com.ng
+                    </a>
+                  </p>
+                  <p>Location: Lagos, Nigeria (6°27&apos;N / 3°21&apos;E • Elev. 7 m)</p>
+                  <p>Time Zone: WAT (UTC+1) • Currency: Naira (NGN) • English</p>
                 </div>
               </div>
 
@@ -223,6 +275,28 @@ export function GetInTouchModalProvider({ children }: { children: React.ReactNod
                       Thank you, {name}. Michael Okpala&apos;s desk has received your brief for{' '}
                       {selectedServices.join(', ') || 'Custom Engagement'}.
                     </p>
+                    {lagosTimestamp && (
+                      <p className="text-xs text-white/60 font-mono">
+                        Logged (Lagos WAT): {lagosTimestamp}
+                      </p>
+                    )}
+                    {deliveryStatus && (
+                      <div className="rounded-xl bg-white/5 border border-white/10 p-3.5 text-xs space-y-1">
+                        <p className="text-white/90 font-medium">
+                          {deliveryStatus.sent
+                            ? `Inbox Notification Dispatched ✓ ${deliveryStatus.emailId ? `(ID: ${deliveryStatus.emailId})` : ''}`
+                            : `Email Dispatch Notice: ${deliveryStatus.error || 'Queued'}`}
+                        </p>
+                        {deliveryStatus.deliveredTo && deliveryStatus.deliveredTo.length > 0 && (
+                          <p className="text-[#F16B0D]">
+                            Destination Mailbox: {deliveryStatus.deliveredTo.join(', ')}
+                          </p>
+                        )}
+                        {deliveryStatus.note && (
+                          <p className="text-white/60 leading-relaxed">{deliveryStatus.note}</p>
+                        )}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-3 pt-2">
                       <a
                         href={whatsappHref}

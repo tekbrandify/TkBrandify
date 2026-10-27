@@ -61,7 +61,7 @@
             "name": "TekBrandify®",
             "description": "Award-winning creative and technical brand engineering studio in Lagos, Nigeria led by Michael Okpala. 48h Rapid Sprint delivery, 85+ shipped products, 4.4x blended ROAS, and 98% retention.",
             "telephone": "+2348067820332",
-            "email": "michael@tekbrandify.com",
+            "email": "support@tekbrandify.com.ng",
             "address": {
               "@type": "PostalAddress",
               "addressLocality": "Victoria Island, Lagos",
@@ -119,6 +119,24 @@
     <script src="/js/lenis.min.js"></script>
   </head>
   <body>
+    <!-- Hidden static form for automatic Netlify Forms detection at build time (zero-config email notifications to support@tekbrandify.com.ng) -->
+    <form
+      name="tekbrandify-sprint-inquiry"
+      method="POST"
+      data-netlify="true"
+      netlify-honeypot="bot-field"
+      hidden
+    >
+      <input type="hidden" name="form-name" value="tekbrandify-sprint-inquiry" />
+      <input type="text" name="bot-field" />
+      <input type="text" name="referenceId" />
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <input type="tel" name="phone" />
+      <input type="text" name="services" />
+      <textarea name="message"></textarea>
+      <input type="text" name="lagosTimestamp" />
+    </form>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -7,6 +7,7 @@ import { useGetInTouchModal } from './GetInTouchModal';
 
 export default function Header() {
   const [blurred, setBlurred] = useState(false);
+  const clockOffsetRef = useRef<number>(0);
   const [watTime, setWatTime] = useState(() => formatLagosTime(new Date()));
   const { openModal } = useGetInTouchModal();
   const headerRef = useRef<HTMLElement>(null);
@@ -25,10 +26,37 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+
+    const syncAuthoritativeClock = async () => {
+      try {
+        const t0 = Date.now();
+        const res = await fetch('/api/health', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          const t1 = Date.now();
+          const rttHalf = Math.round((t1 - t0) / 2);
+          if (typeof data?.serverTimeUtcMs === 'number' && active) {
+            clockOffsetRef.current = data.serverTimeUtcMs + rttHalf - t1;
+            setWatTime(formatLagosTime(new Date(Date.now() + clockOffsetRef.current)));
+          }
+        }
+      } catch {
+        // Fallback to local system UTC if offline
+      }
+    };
+
+    syncAuthoritativeClock();
     const interval = window.setInterval(() => {
-      setWatTime(formatLagosTime(new Date()));
+      setWatTime(formatLagosTime(new Date(Date.now() + clockOffsetRef.current)));
     }, 1000);
-    return () => window.clearInterval(interval);
+    const resyncInterval = window.setInterval(syncAuthoritativeClock, 60000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.clearInterval(resyncInterval);
+    };
   }, []);
 
   useEffect(() => {

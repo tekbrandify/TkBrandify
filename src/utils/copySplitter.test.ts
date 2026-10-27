@@ -7,6 +7,7 @@ import {
   validateInquiryPayload,
   generateInquiryRef,
   buildResendInquiryEmailPayload,
+  encodeNetlifyFormPayload,
 } from './copySplitter';
 
 test('tokenizeCopyText preserves <br> tags and splits words and spaces accurately', () => {
@@ -31,10 +32,13 @@ test('tokenizeCopyText preserves <br> tags and splits words and spaces accuratel
   });
 });
 
-test('formatLagosTime outputs Lagos, NG — HH:MM:SS WAT format', () => {
-  const fixedDate = new Date('2026-10-20T12:00:00Z'); // 13:00:00 WAT (UTC+1)
+test('formatLagosTime outputs Lagos, NG (6°27\'N, 3°21\'E) with 12h AM/PM and 24h WAT (UTC+1)', () => {
+  const fixedDate = new Date('2026-10-20T12:00:00Z'); // 13:00:00 WAT (01:00:00 PM UTC+1)
   const formatted = formatLagosTime(fixedDate);
-  assert.match(formatted, /^Lagos, NG — 13:00:00 WAT$/);
+  assert.equal(
+    formatted,
+    "Lagos, NG (6°27'N, 3°21'E) — 01:00:00 PM (13:00:00 WAT • UTC+1)"
+  );
 });
 
 test('buildWhatsAppUrl encodes selected service pills and inquiry details for +2348067820332', () => {
@@ -73,7 +77,7 @@ test('generateInquiryRef returns a formatted TEK-48H sprint code', () => {
   assert.match(ref, /^TEK-48H-[A-Z0-9]{4,}$/);
 });
 
-test('buildResendInquiryEmailPayload formats 48h Rapid Sprint inquiry email and escapes HTML', () => {
+test('buildResendInquiryEmailPayload formats 48h Rapid Sprint inquiry email and sanitizes From header', () => {
   const payload = buildResendInquiryEmailPayload(
     {
       referenceId: 'TEK-48H-ABCD',
@@ -85,18 +89,28 @@ test('buildResendInquiryEmailPayload formats 48h Rapid Sprint inquiry email and 
       createdAt: '2026-10-26T14:00:00.000Z',
     },
     {
-      fromEmail: 'TekBrandify® <michael@tekbrandify.com>',
-      toEmail: 'michaeloflagos@gmail.com',
+      fromEmail: 'TekBrandify® <support@tekbrandify.com.ng>',
+      toEmail: 'support@tekbrandify.com.ng',
     }
   );
 
-  assert.equal(payload.from, 'TekBrandify® <michael@tekbrandify.com>');
-  assert.deepEqual(payload.to, ['michaeloflagos@gmail.com']);
+  assert.equal(payload.from, 'TekBrandify <support@tekbrandify.com.ng>');
+  assert.deepEqual(payload.to, ['support@tekbrandify.com.ng']);
   assert.equal(payload.replyTo, 'chidi@nexus.ai');
-  assert.equal(payload.subject, '[TEK-48H-ABCD] New 48h Rapid Sprint Brief — Chidi <Founder>');
+  assert.equal(payload.subject, '[TEK-48H-ABCD] New 48h Rapid Sprint Brief - Chidi <Founder>');
   assert.ok(payload.html.includes('Chidi &lt;Founder&gt;'));
   assert.ok(payload.html.includes('48h Rapid Sprint Brief'));
   assert.ok(payload.text.includes('Need a 48h Rapid Sprint before Monday.'));
+  assert.ok(payload.text.includes('03:00:00 PM WAT'));
 });
 
+test('encodeNetlifyFormPayload serializes form-name and inquiry fields for Netlify Forms', () => {
+  const encoded = encodeNetlifyFormPayload({
+    'form-name': 'tekbrandify-sprint-inquiry',
+    name: 'Michael Okpala',
+    email: 'support@tekbrandify.com.ng',
+  });
+  assert.ok(encoded.includes('form-name=tekbrandify-sprint-inquiry'));
+  assert.ok(encoded.includes('email=support%40tekbrandify.com.ng'));
+});
 

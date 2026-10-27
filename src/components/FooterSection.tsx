@@ -3,6 +3,8 @@ import { getGsap } from '../utils/gsapGlobal';
 import { SERVICE_PILLARS } from '../data/tekbrandifyData';
 import {
   buildWhatsAppUrl,
+  encodeNetlifyFormPayload,
+  formatLagosDateTime,
   generateInquiryRef,
   validateInquiryPayload,
 } from '../utils/copySplitter';
@@ -49,6 +51,14 @@ export default function FooterSection() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [referenceId, setReferenceId] = useState('');
+  const [lagosTimestamp, setLagosTimestamp] = useState('');
+  const [deliveryStatus, setDeliveryStatus] = useState<{
+    sent: boolean;
+    emailId?: string;
+    deliveredTo?: string[];
+    note?: string;
+    error?: string;
+  } | null>(null);
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
@@ -102,7 +112,30 @@ export default function FooterSection() {
     setFormError('');
     setSubmitting(true);
     let refCode = generateInquiryRef();
+    let serverLagosTime = formatLagosDateTime(new Date());
+    let emailInfo: typeof deliveryStatus = null;
 
+    // 1. Submit to native Netlify Forms (`data-netlify="true"`) so Netlify captures & notifies support@tekbrandify.com.ng with zero API keys
+    try {
+      await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: encodeNetlifyFormPayload({
+          'form-name': 'tekbrandify-sprint-inquiry',
+          referenceId: refCode,
+          name: name.trim(),
+          email: email.trim(),
+          phone: '',
+          services: selectedServices.join(', ') || 'Custom 48h Sprint',
+          message: message.trim(),
+          lagosTimestamp: serverLagosTime,
+        }),
+      });
+    } catch {
+      // Non-blocking when not running behind Netlify CDN
+    }
+
+    // 2. Submit to Studio API / Mailbux SMTP handler
     try {
       const response = await fetch('/api/inquiries', {
         method: 'POST',
@@ -118,6 +151,12 @@ export default function FooterSection() {
         const data = await response.json();
         if (data?.inquiry?.referenceId) {
           refCode = data.inquiry.referenceId;
+        }
+        if (data?.inquiry?.lagosTimestamp) {
+          serverLagosTime = data.inquiry.lagosTimestamp;
+        }
+        if (data?.emailDelivery) {
+          emailInfo = data.emailDelivery;
         }
       }
     } catch {
@@ -140,6 +179,8 @@ export default function FooterSection() {
     }
 
     setReferenceId(refCode);
+    setLagosTimestamp(serverLagosTime);
+    setDeliveryStatus(emailInfo);
     setSubmitting(false);
     setSubmitted(true);
   };
@@ -221,6 +262,28 @@ export default function FooterSection() {
                   inquiry is logged. Expect a response within 2 hours (Lagos WAT), or launch an
                   instant WhatsApp thread right now.
                 </p>
+                {lagosTimestamp && (
+                  <p className="text-xs text-white/60 font-mono">
+                    Logged (Lagos WAT): {lagosTimestamp}
+                  </p>
+                )}
+                {deliveryStatus && (
+                  <div className="rounded-2xl bg-black/40 border border-white/15 p-4 text-xs space-y-1.5">
+                    <p className="text-white font-medium">
+                      {deliveryStatus.sent
+                        ? `Inbox Notification Dispatched ✓ ${deliveryStatus.emailId ? `(ID: ${deliveryStatus.emailId})` : ''}`
+                        : `Email Dispatch Notice: ${deliveryStatus.error || 'Queued'}`}
+                    </p>
+                    {deliveryStatus.deliveredTo && deliveryStatus.deliveredTo.length > 0 && (
+                      <p className="text-[#F16B0D]">
+                        Destination Mailbox: {deliveryStatus.deliveredTo.join(', ')}
+                      </p>
+                    )}
+                    {deliveryStatus.note && (
+                      <p className="text-white/65 leading-relaxed">{deliveryStatus.note}</p>
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-4 pt-2">
                   <a
                     href={whatsappUrl}
@@ -344,8 +407,8 @@ export default function FooterSection() {
                   </a>
                 </li>
                 <li className="under-multi-parent">
-                  <a href="mailto:michael@tekbrandify.com" className="under-multi content-p">
-                    michael@tekbrandify.com
+                  <a href="mailto:support@tekbrandify.com.ng" className="under-multi content-p">
+                    support@tekbrandify.com.ng
                   </a>
                 </li>
               </ul>
